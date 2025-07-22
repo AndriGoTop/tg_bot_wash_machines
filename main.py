@@ -13,6 +13,8 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+# Автоматический парсер
+
 async def parser(app):
     while True:
         print('---------\nпарсинг\n---------')
@@ -21,6 +23,8 @@ async def parser(app):
 
 async def on_startup(app):
     app.create_task(parser(app))
+
+# Старт бота
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = '''Это бот, который поможет следить за статусом стиральных машин
@@ -36,20 +40,43 @@ async def check_mach(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
+# Таймер на машинку
+
 async def t_m(update, context):
     timer = context.args
+    stop = False
     if len(timer) == 1 and (int(timer[0]) > 0 and int(timer[0]) < 5):
         await context.bot.send_message(chat_id=update.effective_chat.id, text='Таймер запущен')
-        while True:
+        while not stop:
             with open('mach_status.json', 'r') as json_file:
                 data = json.load(json_file)
                 stat = data[timer[0]]
             if stat == 'Свободно':
+                stop = True
                 await context.bot.send_message(chat_id=update.effective_chat.id, text=f'{timer[0]} стиралка свободна')                
             await asyncio.sleep(60)
 
 async def timer_machine(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(t_m(update, context))
+
+# Уведомление если появится свободная стиралка
+
+async def a_m(update, context):
+    stop = False
+    await context.bot.send_message(chat_id=update.effective_chat.id, text='Сообщу, ессли какая-либо стиралка будет свободна')
+    while not stop:
+        with open('mach_status.json', 'r') as json_file:
+            data = json.load(json_file)
+            stat = [data[str(i)] for i in range(1, 5)]
+        if 'Свободно' in stat:
+            stop = True
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=f'Есть свободная стиралка')                
+        await asyncio.sleep(60)
+
+async def any_machine(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    asyncio.create_task(a_m(update, context))
+
+# Работа бота
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TG_TOKEN).post_init(on_startup).build()
@@ -57,9 +84,11 @@ if __name__ == '__main__':
     start_handler = CommandHandler('start', start)
     check_mach_handler = CommandHandler('check_mach', check_mach)
     timer_machine_handler = CommandHandler('timer_macine', timer_machine)
+    any_macine_handler = CommandHandler('any_macine', any_machine)
 
     application.add_handler(start_handler)
     application.add_handler(check_mach_handler)
     application.add_handler(timer_machine_handler)
+    application.add_handler(any_macine_handler)
 
     application.run_polling()
