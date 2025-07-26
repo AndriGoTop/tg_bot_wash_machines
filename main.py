@@ -48,12 +48,13 @@ async def t_m(update, context):
     if len(timer) == 1 and (int(timer[0]) > 0 and int(timer[0]) < 5):
         await context.bot.send_message(chat_id=update.effective_chat.id, text='Таймер запущен')
         while not stop:
-            with open('mach_status.json', 'r') as json_file:
+            with open('mach_status.json', 'r', encoding='utf-8') as json_file:
                 data = json.load(json_file)
                 stat = data[timer[0]]
             if stat == 'Свободно':
                 stop = True
                 await context.bot.send_message(chat_id=update.effective_chat.id, text=f'{timer[0]} стиралка свободна')                
+            print('Проверяю машинку', stat)
             await asyncio.sleep(60)
 
 async def timer_machine(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -65,7 +66,7 @@ async def a_m(update, context):
     stop = False
     await context.bot.send_message(chat_id=update.effective_chat.id, text='Сообщу, ессли какая-либо стиралка будет свободна')
     while not stop:
-        with open('mach_status.json', 'r') as json_file:
+        with open('mach_status.json', 'r', encoding='utf-8') as json_file:
             data = json.load(json_file)
             stat = [data[str(i)] for i in range(1, 5)]
         if 'Свободно' in stat:
